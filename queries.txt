@@ -1,0 +1,122 @@
+1) select second highest Sgpa from the table studentmemo
+Q:SELECT "SGPA" as Second_Highest_SGPA from "studentmemo" 
+where "SGPA" <(select MAX("SGPA") from "studentmemo")
+group by "SGPA" 
+order by "SGPA" DESC
+LIMIT 1
+OFFSET 1
+O: 8.93 
+
+2) select the student names of top 5 sgpa in table studentmemo
+Q:
+
+
+3)select the total% secured by students grouped by subject
+Q:SELECT "Subjects Registerd", AVG("Total%") as Total_Percentage
+    FROM "studentmemo"
+    WHERE '__type' = 'delta'
+    AND "__time" >= '2023-01-01T00:00:00.000Z'
+    AND "__time" <= '2023-05-31T23:59:59.000Z'
+    GROUP BY "Subjects Registerd"
+    LIMIT 100
+O: blank
+
+1) rank students based on sgpa(using approximate ranking)
+Q: select "Student Name", APPROX_TOP(5, RANK() OVER (ORDER BY "SGPA" DESC)) as rank 
+FROM "studentmemo"
+GROUP BY "Student Name"
+ORDER BY "rank" ASC, "SGPA" DESC
+LIMIT 100
+O:error
+
+2) find students who scored below average in any subject
+Q: select "S.NO", "Student Name", "ROLL NUMBER", __time 
+from "studentmemo"
+where ("8EC08_GRADE" <(SELECT AVG("8EC08_GRADE") FROM "studentmemo"))
+  OR ("8EC19_GRADE" <(SELECT AVG("8EC19_GRADE") FROM "studentmemo"))
+   OR ("8EC30_GRADE" <(SELECT AVG("8EC30_GRADE") FROM "studentmemo"))
+   OR ("8EC68_GRADE" <(SELECT AVG("8EC68_GRADE") FROM "studentmemo"))
+   OR ("8F709_GRADE" <(SELECT AVG("8F709_GRADE") FROM "studentmemo"))
+  LIMIT 100
+O: NO DATA
+
+3)Compute pass percentage per subject
+Q:SELECT
+"__time",
+"Student Name",
+"ROLL NUMBER",
+"8EC08_M1" AS "8EC08_Subject1_Marks",
+"8EC08_M2" AS "8EC08_Subject1_Marks",
+"8EC08_M3" AS "8EC08_Subject1_Marks",
+"Total"- SUM("8EC08_M1") - SUM ("8EC08_M2") - SUM ("8EC08_M3") AS "8EC08_Subject1_Passed_Marks"
+SUM ("8EC08_Subject1_Passed_Marks") / (SUM ("Total") * 0.75) AS "8EC08_Subject1_PassPercentage"
+FROM "studentmemo"
+WHERE "__time" >= "2021-01-01T00:00:00Z"
+GROUP BY "__time", "Student Name"
+ORDER BY "__time" ASC, "Student Name" ASC
+LIMIT 100
+O: error
+
+4) get top 5 students per subject based on total marks
+Q:SELECT * from "studentmemo"
+where "8EC08_TOT" > (select max("8EC08_TOT") from "studentmemo") AND
+      "8EC19_TOT" > (select max("8EC19_TOT") from "studentmemo") AND
+      "8EC30_TOT" > (select max("8EC30_TOT") from "studentmemo") AND
+      "8EC68_TOT" > (select max("8EC68_TOT") from "studentmemo") AND
+      "8F709_TOT" > (select max("8F709_TOT") from "studentmemo") 
+      GROUP BY "S.NO", "Student Name", "ROLL NUMBER"
+      order by "Total" DESC
+      limit 5
+O: error
+
+5)find students who passed all subjects but have low sgpa (<6.0)
+Q:SELECT *
+   FROM "studentmemo"
+   WHERE "PASSED" = (SELECT COUNT(*) FROM (SELECT "8EC09_M1", "8EC09_M2", "8EC09_M3", "8EC19_M1", "8EC19_M2", "8EC19_M3", "8EC30_M1", "8EC30_M2", "8EC30_M3", "8EC68_M1", "8EC68_M2", "8EC68_M3", "8F709_M1", "8F709_M2", "8F709_M3" GROUP BY "__time") sub
+   AND "PASSED" = (SELECT COUNT(*) FROM (SELECT "8EC08_M1", "8EC08_M2", "8EC08_M3", "8EC19_M1", "8EC19_M2", "8EC19_M3", "8EC30_M1", "8EC30_M2", "8EC30_M3", "8EC68_M1", "8EC68_M2", "8EC68_M3", "8F709_M1", "8F709_M2", "8F709_M3" GROUP BY "__time") sub
+   AND "SGPA" < 6.0
+O: error
+
+6)identify the most common grade in each subject
+Q:SELECT "Student Name", '8EC08_SUBJECT' AS "subject", MODE("8EC08_GRADE") as most_common_grade
+    FROM "studentmemo"
+    WHERE "Student Name" IS NOT NULL AND "8EC08_GRADE" IS NOT NULL
+    GROUP BY "Student Name", '8EC08_SUBJECT'
+    ORDER BY COUNT("Student Name") DESC
+    LIMIT 100
+O:error
+
+8)find the hardest subject(highest failure rate)
+Q:SELECT 'Subject', AVG('8EC09_BACKLOGS') as AverageBacklogs
+
+FROM "studentmemo"
+
+WHERE '8EC09_BACKLOGS' > 0
+
+GROUP BY 'Subject'
+
+ORDER BY AVG("8EC09_BACKLOGS") DESC
+
+LIMIT 1
+O:error
+
+
+9)calculate weighted SGPA (Credits - based)
+Q:SELECT AVG("SGPA") as Weighted_SGPA
+FROM "studentmemo"
+WHERE "__time" = TIME_PARSE('iso', '*')
+GROUP BY "Student Name"
+LIMIT 100
+O: no data
+
+10)find students who scored   full marks in at least one subject
+Q: SELECT "S.NO", COUNT("S.NO") as Count
+   FROM "studentmemo"
+   WHERE "8EC08_POINTS" = 100 OR "8EC19_POINTS" = 100 OR "8EC30_POINTS" = 100 OR "8EC68_POINTS" = 100 OR "8F709_POINTS" = 100
+   GROUP BY "S.NO"
+   HAVING COUNT("S.NO") >= 1
+   LIMIT 100
+
+O: error
+
+
